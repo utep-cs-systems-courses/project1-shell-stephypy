@@ -66,6 +66,19 @@ while True:
 
         # child
         elif rc == 0:
+
+            if ">" in args or "<" in args:
+                i = -1
+                if ">" in args:
+                    i = args.index('>')
+                else:
+                    i = args.index('<')
+
+                os.close(1)
+                os.open(args[i + 1], os.O_CREAT | os.O_WRONLY)
+                os.set_inheritable(1, True)
+                args = args[0:i]
+
             for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
                 program = "%s/%s" % (dir, args[0])
                 try:
