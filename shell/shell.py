@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Author: Stephanie Galvan
 # Class: Theory of Operating Systems
 # Assignment 1: Shell
@@ -7,19 +9,53 @@
 import os
 import re
 import sys
+from aifc import Error
+
+
+class NoArgumentsError(Error):
+    """Raised when no argument was provided"""
+    pass
+
+
+class TooManyArgumentsError(Error):
+    """Raised when there are too many arguments"""
+    pass
+
 
 while True:
     # default prompt
     command_string = '$ '
     if 'PS1' in os.environ:
         command = os.environ['PS1']
-    command = input(command_string)
 
-    if not command:
-        # when empty, do nothing and continue
+    command = input(command_string)
+    args = command.split()
+
+    # when empty, do nothing and continue
+    if not args:
         continue
-    elif command.strip() == "exit":
+
+    # exit command
+    elif args[0] == "exit":
         sys.exit(0)
+
+    # change directories
+    elif args[0] == "cd":
+        try:
+            if len(args) < 2:
+                raise NoArgumentsError
+            elif len(args) > 2:
+                raise TooManyArgumentsError
+            else:
+                os.chdir(args[1])
+        except NoArgumentsError:
+            os.write(2, "Error: Provide a directory".encode())
+        except TooManyArgumentsError:
+            os.write(2, "Error: Too many arguments".encode())
+        except FileNotFoundError:
+            os.write(2, ("Error: Directory %s not found\n" % args[1]).encode())
+
+    # fork, exec, wait
     else:
         rc = os.fork()
 
@@ -30,7 +66,6 @@ while True:
 
         # child
         elif rc == 0:
-            args = command.split()
             for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
                 program = "%s/%s" % (dir, args[0])
                 try:
@@ -38,7 +73,7 @@ while True:
                 except FileNotFoundError:  # ...expected
                     pass  # ...fail quietly
 
-            os.write(2, ("could not exec %s\n" % (args[0])).encode())
+            os.write(2, ("command not found %s\n" % (args[0])).encode())
             sys.exit(1)  # terminate with error
 
         # parent (forked ok)

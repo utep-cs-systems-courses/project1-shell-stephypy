@@ -1,0 +1,12 @@
+FAILED: no parameter, full pathname
+FAILED: two commands, full pathname
+FAILED: two commands, blank line in-between, full pathname
+FAILED: no parameter, no pathname
+FAILED: one parameter, full pathname
+FAILED: one parameter, no pathname
+FAILED: pipe
+FAILED: 2 pipes
+FAILED: redirect input
+FAILED: redirect output
+FAILED: background
+FAILED: change dir
