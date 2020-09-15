@@ -10,7 +10,11 @@ import sys
 
 while True:
     # default prompt
-    command = input("$ ")
+    command_string = '$ '
+    if 'PS1' in os.environ:
+        command = os.environ['PS1']
+
+    command = input(command_string)
     if not command:
         # when empty, do nothing and continue
         continue
@@ -34,7 +38,7 @@ while True:
                 except FileNotFoundError:  # ...expected
                     pass  # ...fail quietly
 
-            os.write(2, ("Could not exec %s\n" % (args[0])).encode())
+            os.write(2, ("could not exec %s\n" % (args[0])).encode())
             sys.exit(1)  # terminate with error
 
         # parent (forked ok)
