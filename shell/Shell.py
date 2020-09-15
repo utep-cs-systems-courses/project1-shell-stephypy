@@ -13,8 +13,8 @@ while True:
     command_string = '$ '
     if 'PS1' in os.environ:
         command = os.environ['PS1']
-
     command = input(command_string)
+
     if not command:
         # when empty, do nothing and continue
         continue
