@@ -22,14 +22,34 @@ class TooManyArgumentsError(Error):
     pass
 
 
+def redirection(args_r):
+    # 1 output >
+    if ">" in args_r:
+        i = args_r.index('>')
+        os.close(1)
+        os.open(args_r[i + 1], os.O_CREAT | os.O_WRONLY)
+        os.set_inheritable(1, True)
+    # 0 input <
+    else:
+        i = args_r.index('<')
+        os.close(0)
+        os.open(args_r[i + 1], os.O_RDONLY)
+        os.set_inheritable(0, True)
+
+    return args_r[0:i]
+
+
 while True:
     # default prompt
     command_string = '$ '
     if 'PS1' in os.environ:
-        command = os.environ['PS1']
+        command_string = os.environ['PS1']
 
-    command = input(command_string)
-    args = command.split()
+    # catching EOF error
+    try:
+        args = [str(n) for n in input(command_string).split()]
+    except EOFError:
+        sys.exit(1)
 
     # when empty, do nothing and continue
     if not args:
@@ -68,16 +88,7 @@ while True:
         elif rc == 0:
 
             if ">" in args or "<" in args:
-                i = -1
-                if ">" in args:
-                    i = args.index('>')
-                else:
-                    i = args.index('<')
-
-                os.close(1)
-                os.open(args[i + 1], os.O_CREAT | os.O_WRONLY)
-                os.set_inheritable(1, True)
-                args = args[0:i]
+                args = redirection(args)
 
             for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
                 program = "%s/%s" % (dir, args[0])
