@@ -45,7 +45,12 @@ def redirection(args_r):
         os.open(args_r[i + 1], os.O_RDONLY)
         os.set_inheritable(0, True)
 
-    return args_r[0:i]
+    for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
+        program = "%s/%s" % (dir, args_r[0])
+        try:
+            os.execve(program, args_r, os.environ)  # try to exec program
+        except FileNotFoundError:  # ...expected
+            pass  # ...fail quietly
 
 
 def execute_commands(args_e):
@@ -53,12 +58,26 @@ def execute_commands(args_e):
     Function to execute commands by trying each directory in the path
     :param args_e: commands
     """
-    for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
-        program = "%s/%s" % (dir, args_e[0])
+
+    # handle input/output redirection
+    if ">" in args_e or "<" in args_e:
+        redirection(args_e)
+
+    # handle path names to execute
+    elif '/' in args_e[0]:
+        program = args_e[0]
         try:
-            os.execve(program, args_e, os.environ)  # try to exec program
+            os.execve(program, args_e, os.environ)
         except FileNotFoundError:  # ...expected
             pass  # ...fail quietly
+
+    else:
+        for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
+            program = "%s/%s" % (dir, args_e[0])
+            try:
+                os.execve(program, args_e, os.environ)  # try to exec program
+            except FileNotFoundError:  # ...expected
+                pass  # ...fail quietly
 
     os.write(2, ("command %s not found \n" % (args_e[0])).encode())
     sys.exit(1)  # terminate with error
@@ -105,37 +124,49 @@ def shell():
             except FileNotFoundError:
                 os.write(2, ("Error: Directory %s not found\n" % args[1]).encode())
 
+        # handle pipe
+        elif '|' in args:
+            pipe_left = args[0:args.index("|")]
+            pipe_right = args[args.index("|") + 1:]
+
+            pr, pw = os.pipe()
+
+            rc = os.fork()
+
+            # fork failure
+            if rc < 0:
+                sys.exit(1)
+
+            # child - will write to pipe (left pipe)
+            elif rc == 0:
+                os.close(1)  # redirect child's stdout
+                os.dup(pw)
+                os.set_inheritable(1, True)
+                for fd in (pr, pw):
+                    os.close(fd)
+                execute_commands(pipe_left)
+
+            # parent (forked ok) (right pipe)
+            else:
+                os.close(0)
+                os.dup(pr)
+                os.set_inheritable(0, True)
+                for fd in (pw, pr):
+                    os.close(fd)
+                execute_commands(pipe_right)
+
         # fork, exec, wait
         else:
             rc = os.fork()
 
             # fork failure
             if rc < 0:
-                os.write(2, ("fork failed, returning %d\n" % rc).encode())
                 sys.exit(1)
 
             # child
             elif rc == 0:
-
-                # handle input/output redirection
-                if ">" in args or "<" in args:
-                    args = redirection(args)
-                    execute_commands(args)
-
-                # handle path names to execute
-                elif '/' in args[0]:
-                    program = args[0]
-                    try:
-                        os.execve(program, args, os.environ)
-                    except FileNotFoundError:   # ...expected
-                        pass    # ...fail quietly
-
-                    os.write(2, ("command %s not found \n" % (args[0])).encode())
-                    sys.exit(1)  # terminate with error
-
                 # executing commands
-                else:
-                    execute_commands(args)
+                execute_commands(args)
 
             # parent (forked ok)
             else:
