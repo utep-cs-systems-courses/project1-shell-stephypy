@@ -13,16 +13,25 @@ from aifc import Error
 
 
 class NoArgumentsError(Error):
-    """Raised when no argument was provided"""
+    """
+    Raised when no argument was provided
+    """
     pass
 
 
 class TooManyArgumentsError(Error):
-    """Raised when there are too many arguments"""
+    """
+    Raised when there are too many arguments
+    """
     pass
 
 
 def redirection(args_r):
+    """
+    Function to handle input and output redirection
+    :param args_r: commands
+    :return: args to be passed ine exec
+    """
     # 1 output >
     if ">" in args_r:
         i = args_r.index('>')
@@ -39,6 +48,23 @@ def redirection(args_r):
     return args_r[0:i]
 
 
+def execute_commands(args_e):
+    """
+    Function to execute commands by trying each directory in the path
+    :param args_e: commands
+    """
+    for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
+        program = "%s/%s" % (dir, args_e[0])
+        try:
+            os.execve(program, args_e, os.environ)  # try to exec program
+        except FileNotFoundError:  # ...expected
+            pass  # ...fail quietly
+
+    os.write(2, ("command not found %s\n" % (args_e[0])).encode())
+    sys.exit(1)  # terminate with error
+
+
+# Shell
 while True:
     # default prompt
     command_string = '$ '
@@ -87,18 +113,22 @@ while True:
         # child
         elif rc == 0:
 
+            # handle input/output redirection
             if ">" in args or "<" in args:
                 args = redirection(args)
+                execute_commands(args)
 
-            for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
-                program = "%s/%s" % (dir, args[0])
+            # handle path names to execute
+            elif '/' in args[0]:
+                program = args[0]
                 try:
-                    os.execve(program, args, os.environ)  # try to exec program
-                except FileNotFoundError:  # ...expected
-                    pass  # ...fail quietly
+                    os.execve(program, args, os.environ)
+                except FileNotFoundError:   # ...expected
+                    pass    # ...fail quietly
 
-            os.write(2, ("command not found %s\n" % (args[0])).encode())
-            sys.exit(1)  # terminate with error
+            # executing commands
+            else:
+                execute_commands(args)
 
         # parent (forked ok)
         else:

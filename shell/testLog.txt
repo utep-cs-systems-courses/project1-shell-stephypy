@@ -1,8 +1,8 @@
-FAILED: no parameter, full pathname
-FAILED: two commands, full pathname
-FAILED: two commands, blank line in-between, full pathname
+PASSED: no parameter, full pathname
+PASSED: two commands, full pathname
+PASSED: two commands, blank line in-between, full pathname
 PASSED: no parameter, no pathname
-FAILED: one parameter, full pathname
+PASSED: one parameter, full pathname
 PASSED: one parameter, no pathname
 FAILED: pipe
 FAILED: 2 pipes
