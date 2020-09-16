@@ -34,18 +34,19 @@ def redirection(args_r):
     """
     # 1 output >
     if ">" in args_r:
-        i = args_r.index('>')
+        i = args_r.index(">")
         os.close(1)
         os.open(args_r[i + 1], os.O_CREAT | os.O_WRONLY)
         os.set_inheritable(1, True)
+
     # 0 input <
     else:
-        i = args_r.index('<')
+        i = args_r.index("<")
         os.close(0)
         os.open(args_r[i + 1], os.O_RDONLY)
         os.set_inheritable(0, True)
 
-    for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
+    for dir in re.split(":", os.environ["PATH"]):  # try each directory in the path
         program = "%s/%s" % (dir, args_r[0])
         try:
             os.execve(program, args_r, os.environ)  # try to exec program
@@ -64,7 +65,7 @@ def execute_commands(args_e):
         redirection(args_e)
 
     # handle path names to execute
-    elif '/' in args_e[0]:
+    elif "/" in args_e[0]:
         program = args_e[0]
         try:
             os.execve(program, args_e, os.environ)
@@ -72,7 +73,7 @@ def execute_commands(args_e):
             pass  # ...fail quietly
 
     else:
-        for dir in re.split(":", os.environ['PATH']):  # try each directory in the path
+        for dir in re.split(":", os.environ["PATH"]):  # try each directory in the path
             program = "%s/%s" % (dir, args_e[0])
             try:
                 os.execve(program, args_e, os.environ)  # try to exec program
@@ -129,9 +130,9 @@ def shell():
 
     while True:
         # default prompt
-        command_string = '$ '
-        if 'PS1' in os.environ:
-            command_string = os.environ['PS1']
+        command_string = "$ "
+        if "PS1" in os.environ:
+            command_string = os.environ["PS1"]
 
         # catching EOF error
         try:
@@ -164,12 +165,16 @@ def shell():
                 os.write(2, ("Error: Directory %s not found\n" % args[1]).encode())
 
         # handle pipe
-        elif '|' in args:
+        elif "|" in args:
             pipe_command(args)
 
         # fork, exec, wait
         else:
             rc = os.fork()
+
+            # handle background tasks (incomplete)
+            if "&" in args:
+                args.remove("&")
 
             # fork failure
             if rc < 0:
@@ -183,7 +188,8 @@ def shell():
             # parent (forked ok)
             else:
                 # process done
-                os.wait()
+                if "&" in args is False:
+                    os.wait()
 
 
 if __name__ == "__main__":
