@@ -60,77 +60,85 @@ def execute_commands(args_e):
         except FileNotFoundError:  # ...expected
             pass  # ...fail quietly
 
-    os.write(2, ("command not found %s\n" % (args_e[0])).encode())
+    os.write(2, ("command %s not found \n" % (args_e[0])).encode())
     sys.exit(1)  # terminate with error
 
 
-# Shell
-while True:
-    # default prompt
-    command_string = '$ '
-    if 'PS1' in os.environ:
-        command_string = os.environ['PS1']
+def shell():
+    """
+    A shell for a Unix operating system
+    """
 
-    # catching EOF error
-    try:
-        args = [str(n) for n in input(command_string).split()]
-    except EOFError:
-        sys.exit(1)
+    while True:
+        # default prompt
+        command_string = '$ '
+        if 'PS1' in os.environ:
+            command_string = os.environ['PS1']
 
-    # when empty, do nothing and continue
-    if not args:
-        continue
-
-    # exit command
-    elif args[0] == "exit":
-        sys.exit(0)
-
-    # change directories
-    elif args[0] == "cd":
+        # catching EOF error
         try:
-            if len(args) < 2:
-                raise NoArgumentsError
-            elif len(args) > 2:
-                raise TooManyArgumentsError
-            else:
-                os.chdir(args[1])
-        except NoArgumentsError:
-            os.write(2, "Error: Provide a directory".encode())
-        except TooManyArgumentsError:
-            os.write(2, "Error: Too many arguments".encode())
-        except FileNotFoundError:
-            os.write(2, ("Error: Directory %s not found\n" % args[1]).encode())
-
-    # fork, exec, wait
-    else:
-        rc = os.fork()
-
-        # fork failure
-        if rc < 0:
-            os.write(2, ("fork failed, returning %d\n" % rc).encode())
+            args = [str(n) for n in input(command_string).split()]
+        except EOFError:
             sys.exit(1)
 
-        # child
-        elif rc == 0:
+        # when empty, do nothing and continue
+        if not args:
+            continue
 
-            # handle input/output redirection
-            if ">" in args or "<" in args:
-                args = redirection(args)
-                execute_commands(args)
+        # exit command
+        elif args[0] == "exit":
+            sys.exit(0)
 
-            # handle path names to execute
-            elif '/' in args[0]:
-                program = args[0]
-                try:
-                    os.execve(program, args, os.environ)
-                except FileNotFoundError:   # ...expected
-                    pass    # ...fail quietly
+        # change directories
+        elif args[0] == "cd":
+            try:
+                if len(args) < 2:
+                    raise NoArgumentsError
+                elif len(args) > 2:
+                    raise TooManyArgumentsError
+                else:
+                    os.chdir(args[1])
+            except NoArgumentsError:
+                os.write(2, "Error: Provide a directory".encode())
+            except TooManyArgumentsError:
+                os.write(2, "Error: Too many arguments".encode())
+            except FileNotFoundError:
+                os.write(2, ("Error: Directory %s not found\n" % args[1]).encode())
 
-            # executing commands
-            else:
-                execute_commands(args)
-
-        # parent (forked ok)
+        # fork, exec, wait
         else:
-            # process done
-            os.wait()
+            rc = os.fork()
+
+            # fork failure
+            if rc < 0:
+                os.write(2, ("fork failed, returning %d\n" % rc).encode())
+                sys.exit(1)
+
+            # child
+            elif rc == 0:
+
+                # handle input/output redirection
+                if ">" in args or "<" in args:
+                    args = redirection(args)
+                    execute_commands(args)
+
+                # handle path names to execute
+                elif '/' in args[0]:
+                    program = args[0]
+                    try:
+                        os.execve(program, args, os.environ)
+                    except FileNotFoundError:   # ...expected
+                        pass    # ...fail quietly
+
+                # executing commands
+                else:
+                    execute_commands(args)
+
+            # parent (forked ok)
+            else:
+                # process done
+                os.wait()
+
+
+if __name__ == "__main__":
+    shell()
