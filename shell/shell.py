@@ -130,6 +130,9 @@ def shell():
                     except FileNotFoundError:   # ...expected
                         pass    # ...fail quietly
 
+                    os.write(2, ("command %s not found \n" % (args[0])).encode())
+                    sys.exit(1)  # terminate with error
+
                 # executing commands
                 else:
                     execute_commands(args)
