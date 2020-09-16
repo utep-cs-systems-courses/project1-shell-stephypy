@@ -1,4 +1,0 @@
-output.txt
-shell.py
-testLog.txt
-testShell.sh
