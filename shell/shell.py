@@ -83,6 +83,45 @@ def execute_commands(args_e):
     sys.exit(1)  # terminate with error
 
 
+def pipe_command(args_p):
+    """
+    Handle pipes
+    :param args_p: commands
+    """
+    pipe_left = args_p[0:args_p.index("|")]
+    pipe_right = args_p[args_p.index("|") + 1:]
+
+    pr, pw = os.pipe()
+    rc = os.fork()
+
+    # fork failure
+    if rc < 0:
+        sys.exit(1)
+
+    # child - will write to pipe (left pipe)
+    elif rc == 0:
+        os.close(1)  # redirect child's stdout
+        os.dup(pw)
+        os.set_inheritable(1, True)
+        for fd in (pr, pw):
+            os.close(fd)
+        execute_commands(pipe_left)
+
+    # parent (forked ok) (right pipe)
+    else:
+        os.close(0)
+        os.dup(pr)
+        os.set_inheritable(0, True)
+        for fd in (pw, pr):
+            os.close(fd)
+
+        # handle two pipes
+        if "|" in pipe_right:
+            pipe_command(pipe_right)
+
+        execute_commands(pipe_right)
+
+
 def shell():
     """
     A shell for a Unix operating system
@@ -126,34 +165,7 @@ def shell():
 
         # handle pipe
         elif '|' in args:
-            pipe_left = args[0:args.index("|")]
-            pipe_right = args[args.index("|") + 1:]
-
-            pr, pw = os.pipe()
-
-            rc = os.fork()
-
-            # fork failure
-            if rc < 0:
-                sys.exit(1)
-
-            # child - will write to pipe (left pipe)
-            elif rc == 0:
-                os.close(1)  # redirect child's stdout
-                os.dup(pw)
-                os.set_inheritable(1, True)
-                for fd in (pr, pw):
-                    os.close(fd)
-                execute_commands(pipe_left)
-
-            # parent (forked ok) (right pipe)
-            else:
-                os.close(0)
-                os.dup(pr)
-                os.set_inheritable(0, True)
-                for fd in (pw, pr):
-                    os.close(fd)
-                execute_commands(pipe_right)
+            pipe_command(args)
 
         # fork, exec, wait
         else:
