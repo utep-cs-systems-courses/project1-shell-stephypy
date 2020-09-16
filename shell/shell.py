@@ -53,6 +53,9 @@ def redirection(args_r):
         except FileNotFoundError:  # ...expected
             pass  # ...fail quietly
 
+    os.write(2, ("command %s not found \n" % (args_r[0])).encode())
+    sys.exit(1)  # terminate with error
+
 
 def execute_commands(args_e):
     """
@@ -171,10 +174,12 @@ def shell():
         # fork, exec, wait
         else:
             rc = os.fork()
+            wait = True
 
-            # handle background tasks (incomplete)
+            # handle background tasks (not working T^T)
             if "&" in args:
                 args.remove("&")
+                wait = False
 
             # fork failure
             if rc < 0:
@@ -184,12 +189,15 @@ def shell():
             elif rc == 0:
                 # executing commands
                 execute_commands(args)
+                sys.exit(0)
 
             # parent (forked ok)
             else:
                 # process done
-                if "&" in args is False:
-                    os.wait()
+                if wait:
+                    result = os.wait()
+                    if result[1] != 0 and result[1] != 256:
+                        os.write(2, ("Program terminated with exit code: %d\n" % result[1]).encode())
 
 
 if __name__ == "__main__":
