@@ -110,6 +110,8 @@ def pipe_command(args_p):
         for fd in (pr, pw):
             os.close(fd)
         execute_commands(pipe_left)
+        os.write(2, ("Could not exec %s\n" % pipe_left[0]).encode())
+        sys.exit(1)
 
     # parent (forked ok) (right pipe)
     else:
@@ -124,6 +126,8 @@ def pipe_command(args_p):
             pipe_command(pipe_right)
 
         execute_commands(pipe_right)
+        os.write(2, ("Could not exec %s\n" % pipe_right[0]).encode())
+        sys.exit(1)
 
 
 def shell():
