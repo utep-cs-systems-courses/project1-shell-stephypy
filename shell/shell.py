@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
-# Author: Stephanie Galvan
-# Class: Theory of Operating Systems
-# Assignment 1: Shell
-# Python version: 3.7.0
-# Description: To build a user shell for a Unix operating system
+"""
+@author: Stephanie Galvan
+@course: Theory of Operating
+@assignment: 1 - Shell
+@python-version: 3.7.0
+@description: To build a user shell for a Unix operating
+"""
 
 import os
 import re
@@ -145,6 +147,12 @@ def pipe_command(args_p):
 
 
 def running_commands(args):
+    """
+    Run the arguments input by the user
+    :param args: arguments given by the user
+    """
+
+    # if empty, do nothing and continue
     if len(args) == 0:
         return
 
@@ -177,7 +185,7 @@ def running_commands(args):
         rc = os.fork()
         wait = True
 
-        # handle background tasks (not working T^T)
+        # handle background tasks
         if "&" in args:
             args.remove("&")
             wait = False
@@ -207,7 +215,6 @@ def shell():
     """
 
     while True:
-
         # default prompt
         command_string = "$ "
         if "PS1" in os.environ:
@@ -217,14 +224,18 @@ def shell():
         os.write(1, command_string.encode())
         args = get_args()
 
+        #  if os.read returns 0 bytes, finish quietly
         if len(args) == 0:
             break
+
+        # split by new line to separate commands
         args = args.decode().split("\n")
 
         # when empty, do nothing and continue
         if not args:
             continue
 
+        # run commands
         for arg in args:
             running_commands(arg.split())
 
