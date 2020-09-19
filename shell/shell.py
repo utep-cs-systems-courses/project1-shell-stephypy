@@ -78,6 +78,7 @@ def execute_commands(args_e):
     else:
         for dir in re.split(":", os.environ["PATH"]):  # try each directory in the path
             program = "%s/%s" % (dir, args_e[0])
+            print(program)
             try:
                 os.execve(program, args_e, os.environ)  # try to exec program
             except FileNotFoundError:  # ...expected
@@ -141,18 +142,16 @@ def shell():
         if "PS1" in os.environ:
             command_string = os.environ["PS1"]
 
-        # catching EOF error
-        try:
-            args = [str(n) for n in input(command_string).split()]
-        except EOFError:
-            sys.exit(1)
+        # using os.read to get arguments from stdin
+        os.write(2, command_string.encode())
+        args = os.read(0, 256).decode().strip().split()
 
         # when empty, do nothing and continue
         if not args:
             continue
 
         # exit command
-        elif args[0] == "exit":
+        elif "exit" in args:
             sys.exit(0)
 
         # change directories
