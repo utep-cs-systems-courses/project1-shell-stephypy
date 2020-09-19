@@ -32,15 +32,8 @@ def get_args():
     :return: a string list with the commands
     """
 
-    # default prompt
-    command_string = "$ "
-    if "PS1" in os.environ:
-        command_string = os.environ["PS1"]
-
-    # using os.read to get arguments from stdin
-    os.write(2, command_string.encode())
-
-    return os.read(0, 256).decode().strip().split()
+    args = os.read(0, 128)
+    return args
 
 
 def redirection(args_r):
@@ -153,15 +146,26 @@ def shell():
     """
 
     while True:
-        # commands from stdin
+
+        # default prompt
+        command_string = "$ "
+        if "PS1" in os.environ:
+            command_string = os.environ["PS1"]
+
+        # getting args
+        os.write(1, command_string.encode())
         args = get_args()
+
+        if len(args) == 0:
+            break
+        args = args.decode().split()
 
         # when empty, do nothing and continue
         if not args:
             continue
 
         # exit command
-        elif "exit" in args:
+        elif args[0] == "exit":
             sys.exit(0)
 
         # change directories
