@@ -48,6 +48,8 @@ def redirection(args_r):
         os.close(1)
         os.open(args_r[i + 1], os.O_CREAT | os.O_WRONLY)
         os.set_inheritable(1, True)
+        args_r.remove(args_r[i + 1])
+        args_r.remove('>')
 
     # 0 input <
     else:
@@ -55,6 +57,8 @@ def redirection(args_r):
         os.close(0)
         os.open(args_r[i + 1], os.O_RDONLY)
         os.set_inheritable(0, True)
+        args_r.remove(args_r[i + 1])
+        args_r.remove('<')
 
     for dir in re.split(":", os.environ["PATH"]):  # try each directory in the path
         program = "%s/%s" % (dir, args_r[0])
@@ -140,6 +144,63 @@ def pipe_command(args_p):
         sys.exit(1)
 
 
+def running_commands(args):
+    if len(args) == 0:
+        return
+
+    # exit command
+    elif args[0] == "exit":
+        sys.exit(0)
+
+    # change directories
+    elif args[0] == "cd":
+        try:
+            if len(args) < 2:
+                raise NoArgumentsError
+            elif len(args) > 2:
+                raise TooManyArgumentsError
+            else:
+                os.chdir(args[1])
+        except NoArgumentsError:
+            os.write(2, "Error: Provide a directory".encode())
+        except TooManyArgumentsError:
+            os.write(2, "Error: Too many arguments".encode())
+        except FileNotFoundError:
+            os.write(2, ("Error: Directory %s not found\n" % args[1]).encode())
+
+    # handle pipe
+    elif "|" in args:
+        pipe_command(args)
+
+    # fork, exec, wait
+    else:
+        rc = os.fork()
+        wait = True
+
+        # handle background tasks (not working T^T)
+        if "&" in args:
+            args.remove("&")
+            wait = False
+
+        # fork failure
+        if rc < 0:
+            sys.exit(1)
+
+        # child
+        elif rc == 0:
+            # executing commands
+            execute_commands(args)
+            sys.exit(0)
+
+        # parent (forked ok)
+        else:
+            # process done
+            if wait:
+                result = os.wait()
+                if result[1] != 0 and result[1] != 256:
+                    os.write(2, ("Program terminated with exit code: %d\n" % result[1]).encode())
+
+
 def shell():
     """
     A shell for a Unix operating system
@@ -158,63 +219,14 @@ def shell():
 
         if len(args) == 0:
             break
-        args = args.decode().split()
+        args = args.decode().split("\n")
 
         # when empty, do nothing and continue
         if not args:
             continue
 
-        # exit command
-        elif args[0] == "exit":
-            sys.exit(0)
-
-        # change directories
-        elif args[0] == "cd":
-            try:
-                if len(args) < 2:
-                    raise NoArgumentsError
-                elif len(args) > 2:
-                    raise TooManyArgumentsError
-                else:
-                    os.chdir(args[1])
-            except NoArgumentsError:
-                os.write(2, "Error: Provide a directory".encode())
-            except TooManyArgumentsError:
-                os.write(2, "Error: Too many arguments".encode())
-            except FileNotFoundError:
-                os.write(2, ("Error: Directory %s not found\n" % args[1]).encode())
-
-        # handle pipe
-        elif "|" in args:
-            pipe_command(args)
-
-        # fork, exec, wait
-        else:
-            rc = os.fork()
-            wait = True
-
-            # handle background tasks (not working T^T)
-            if "&" in args:
-                args.remove("&")
-                wait = False
-
-            # fork failure
-            if rc < 0:
-                sys.exit(1)
-
-            # child
-            elif rc == 0:
-                # executing commands
-                execute_commands(args)
-                sys.exit(0)
-
-            # parent (forked ok)
-            else:
-                # process done
-                if wait:
-                    result = os.wait()
-                    if result[1] != 0 and result[1] != 256:
-                        os.write(2, ("Program terminated with exit code: %d\n" % result[1]).encode())
+        for arg in args:
+            running_commands(arg.split())
 
 
 if __name__ == "__main__":
