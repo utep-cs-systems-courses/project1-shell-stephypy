@@ -26,6 +26,23 @@ class TooManyArgumentsError(Error):
     pass
 
 
+def get_args():
+    """
+    Obtain input from the command line using os.read()
+    :return: a string list with the commands
+    """
+
+    # default prompt
+    command_string = "$ "
+    if "PS1" in os.environ:
+        command_string = os.environ["PS1"]
+
+    # using os.read to get arguments from stdin
+    os.write(2, command_string.encode())
+
+    return os.read(0, 256).decode().strip().split()
+
+
 def redirection(args_r):
     """
     Function to handle input and output redirection
@@ -78,7 +95,6 @@ def execute_commands(args_e):
     else:
         for dir in re.split(":", os.environ["PATH"]):  # try each directory in the path
             program = "%s/%s" % (dir, args_e[0])
-            print(program)
             try:
                 os.execve(program, args_e, os.environ)  # try to exec program
             except FileNotFoundError:  # ...expected
@@ -137,14 +153,8 @@ def shell():
     """
 
     while True:
-        # default prompt
-        command_string = "$ "
-        if "PS1" in os.environ:
-            command_string = os.environ["PS1"]
-
-        # using os.read to get arguments from stdin
-        os.write(2, command_string.encode())
-        args = os.read(0, 256).decode().strip().split()
+        # commands from stdin
+        args = get_args()
 
         # when empty, do nothing and continue
         if not args:
