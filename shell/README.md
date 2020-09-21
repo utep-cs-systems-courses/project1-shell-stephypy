@@ -8,6 +8,7 @@ Includes a basic shell for a unix operating system
 
 ### How to run
 To run the shell only, type `./shell.py` on macos/unix command line
+<br />
 To run the tests type `./testShell.sh ./shell.py` on macos/unix command line
 
 ### Features
